@@ -1,0 +1,49 @@
+# AI Text Provenance Service - GPU Version
+# Based on NVIDIA CUDA runtime for GPU inference
+
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
+
+WORKDIR /app
+
+# Install Python and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3-pip \
+    python3.11-venv \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make python3.11 the default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+# Install Python dependencies
+COPY pyproject.toml .
+RUN pip install --no-cache-dir . && \
+    pip install --no-cache-dir onnxruntime-gpu torch --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Download spaCy model
+RUN python -m spacy download en_core_web_sm
+
+# Copy source code
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd -m -u 1000 provenance && \
+    chown -R provenance:provenance /app
+USER provenance
+
+# Environment variables
+ENV PROVENANCE_MODEL_PATH=""
+ENV PROVENANCE_USE_ONNX="true"
+ENV PROVENANCE_DEVICE="cuda"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run server
+CMD ["python", "-m", "ai_text_provenance.api.server"]
