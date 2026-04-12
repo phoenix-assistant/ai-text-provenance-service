@@ -11,10 +11,8 @@ they capture discourse structure, not surface text.
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Optional
 import logging
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -25,7 +23,6 @@ from ai_text_provenance.features.extractor import FeatureExtractor
 from ai_text_provenance.models.schemas import (
     ClassificationResult,
     ProvenanceClass,
-    AllFeatures,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,10 +34,12 @@ class FeatureMLP(nn.Module):
     def __init__(
         self,
         input_dim: int = 47,  # Total features from FeatureExtractor
-        hidden_dims: list[int] = [128, 64],
+        hidden_dims: list[int] = None,
         num_classes: int = 4,
         dropout: float = 0.3,
     ):
+        if hidden_dims is None:
+            hidden_dims = [128, 64]
         super().__init__()
 
         layers = []
@@ -164,9 +163,7 @@ class EnsembleClassifier(nn.Module):
             Logits [batch_size, num_classes]
         """
         # Get transformer predictions and embedding
-        transformer_logits, transformer_embed = self.transformer(
-            input_ids, attention_mask
-        )
+        transformer_logits, transformer_embed = self.transformer(input_ids, attention_mask)
 
         # Get MLP predictions and embedding
         mlp_logits, mlp_embed = self.feature_mlp(features)
@@ -178,9 +175,7 @@ class EnsembleClassifier(nn.Module):
         # Weighted ensemble
         weights = torch.softmax(self.ensemble_weights, dim=0)
         ensemble_logits = (
-            weights[0] * transformer_logits
-            + weights[1] * mlp_logits
-            + weights[2] * fusion_logits
+            weights[0] * transformer_logits + weights[1] * mlp_logits + weights[2] * fusion_logits
         )
 
         return ensemble_logits
@@ -206,9 +201,9 @@ class ProvenanceClassifier:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
         transformer_model: str = "distilbert-base-uncased",
-        device: Optional[str] = None,
+        device: str | None = None,
         use_onnx: bool = False,
     ):
         """Initialize the classifier.
@@ -285,9 +280,7 @@ class ProvenanceClassifier:
             logger.error("ONNX Runtime not installed. Install with: pip install onnxruntime")
             raise
 
-    def classify(
-        self, text: str, include_features: bool = False
-    ) -> ClassificationResult:
+    def classify(self, text: str, include_features: bool = False) -> ClassificationResult:
         """Classify a single text.
 
         Args:
@@ -324,9 +317,7 @@ class ProvenanceClassifier:
         confidence = float(probs[pred_idx])
 
         # Build probability dict
-        probabilities = {
-            cls.value: float(probs[i]) for i, cls in enumerate(self.CLASSES)
-        }
+        probabilities = {cls.value: float(probs[i]) for i, cls in enumerate(self.CLASSES)}
 
         return ClassificationResult(
             prediction=prediction,
@@ -351,9 +342,7 @@ class ProvenanceClassifier:
 
         # Extract features for all texts
         all_features = [self.feature_extractor.extract(text) for text in texts]
-        feature_vectors = [
-            self.feature_extractor.to_vector(f) for f in all_features
-        ]
+        feature_vectors = [self.feature_extractor.to_vector(f) for f in all_features]
 
         # Tokenize all texts
         encodings = self.tokenizer(
@@ -370,16 +359,14 @@ class ProvenanceClassifier:
             logits = self._inference_pytorch_batch(encodings, feature_vectors)
 
         # Process each result
-        for i, (text, features) in enumerate(zip(texts, all_features)):
+        for i, (_text, features) in enumerate(zip(texts, all_features, strict=False)):
             probs = torch.softmax(torch.tensor(logits[i]), dim=-1).numpy()
 
             pred_idx = np.argmax(probs)
             prediction = self.CLASSES[pred_idx]
             confidence = float(probs[pred_idx])
 
-            probabilities = {
-                cls.value: float(probs[j]) for j, cls in enumerate(self.CLASSES)
-            }
+            probabilities = {cls.value: float(probs[j]) for j, cls in enumerate(self.CLASSES)}
 
             results.append(
                 ClassificationResult(
@@ -392,16 +379,12 @@ class ProvenanceClassifier:
 
         return results
 
-    def _inference_pytorch(
-        self, encoding: dict, feature_vector: list[float]
-    ) -> np.ndarray:
+    def _inference_pytorch(self, encoding: dict, feature_vector: list[float]) -> np.ndarray:
         """Run inference with PyTorch model."""
         with torch.no_grad():
             input_ids = encoding["input_ids"].to(self.device)
             attention_mask = encoding["attention_mask"].to(self.device)
-            features = torch.tensor([feature_vector], dtype=torch.float32).to(
-                self.device
-            )
+            features = torch.tensor([feature_vector], dtype=torch.float32).to(self.device)
 
             logits = self.model(input_ids, attention_mask, features)
             return logits.cpu().numpy()[0]
@@ -413,16 +396,12 @@ class ProvenanceClassifier:
         with torch.no_grad():
             input_ids = encodings["input_ids"].to(self.device)
             attention_mask = encodings["attention_mask"].to(self.device)
-            features = torch.tensor(feature_vectors, dtype=torch.float32).to(
-                self.device
-            )
+            features = torch.tensor(feature_vectors, dtype=torch.float32).to(self.device)
 
             logits = self.model(input_ids, attention_mask, features)
             return logits.cpu().numpy()
 
-    def _inference_onnx(
-        self, encoding: dict, feature_vector: list[float]
-    ) -> np.ndarray:
+    def _inference_onnx(self, encoding: dict, feature_vector: list[float]) -> np.ndarray:
         """Run inference with ONNX Runtime."""
         inputs = {
             "input_ids": encoding["input_ids"].numpy(),
@@ -457,9 +436,7 @@ class ProvenanceClassifier:
         # Create dummy inputs
         dummy_input_ids = torch.randint(0, 1000, (1, 512)).to(self.device)
         dummy_attention_mask = torch.ones(1, 512).to(self.device)
-        dummy_features = torch.randn(1, self.feature_extractor.num_features).to(
-            self.device
-        )
+        dummy_features = torch.randn(1, self.feature_extractor.num_features).to(self.device)
 
         # Export
         torch.onnx.export(

@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-from pathlib import Path
-from typing import AsyncIterator, Iterator, Optional
 import logging
 import time
+from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 from ai_text_provenance.models.classifier import ProvenanceClassifier
 from ai_text_provenance.models.schemas import ClassificationResult
@@ -29,7 +29,7 @@ class BatchProcessor:
         self,
         classifier: ProvenanceClassifier,
         batch_size: int = 32,
-        progress_callback: Optional[callable] = None,
+        progress_callback: callable | None = None,
     ):
         """Initialize the batch processor.
 
@@ -100,7 +100,7 @@ class BatchProcessor:
         texts = []
         records = []
 
-        with open(input_file, "r") as f:
+        with open(input_file) as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -124,11 +124,13 @@ class BatchProcessor:
 
         # Write output
         with open(output_file, "w") as f:
-            for record, result in zip(records, results):
+            for record, result in zip(records, results, strict=False):
                 output_record = {
                     **record,
                     "provenance": {
-                        "prediction": result.prediction.value if hasattr(result.prediction, 'value') else result.prediction,
+                        "prediction": result.prediction.value
+                        if hasattr(result.prediction, "value")
+                        else result.prediction,
                         "confidence": result.confidence,
                         "probabilities": result.probabilities,
                     },

@@ -6,7 +6,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 from ai_text_provenance import __version__
 
@@ -41,7 +40,9 @@ def classify_command(args: argparse.Namespace) -> None:
     # Output
     if args.json:
         output = {
-            "prediction": result.prediction.value if hasattr(result.prediction, 'value') else result.prediction,
+            "prediction": result.prediction.value
+            if hasattr(result.prediction, "value")
+            else result.prediction,
             "confidence": result.confidence,
             "probabilities": result.probabilities,
         }
@@ -49,7 +50,9 @@ def classify_command(args: argparse.Namespace) -> None:
             output["features"] = result.features.model_dump()
         print(json.dumps(output, indent=2))
     else:
-        print(f"\nPrediction: {result.prediction.value if hasattr(result.prediction, 'value') else result.prediction}")
+        print(
+            f"\nPrediction: {result.prediction.value if hasattr(result.prediction, 'value') else result.prediction}"
+        )
         print(f"Confidence: {result.confidence:.2%}")
         print("\nProbabilities:")
         for cls, prob in sorted(result.probabilities.items(), key=lambda x: -x[1]):
@@ -59,8 +62,8 @@ def classify_command(args: argparse.Namespace) -> None:
 
 def batch_command(args: argparse.Namespace) -> None:
     """Run batch processing on a file."""
-    from ai_text_provenance.models.classifier import ProvenanceClassifier
     from ai_text_provenance.inference.batch import BatchProcessor
+    from ai_text_provenance.models.classifier import ProvenanceClassifier
 
     # Initialize
     classifier = ProvenanceClassifier(
@@ -71,8 +74,7 @@ def batch_command(args: argparse.Namespace) -> None:
     def progress_callback(processed: int, total: int, elapsed: float) -> None:
         rate = processed / elapsed if elapsed > 0 else 0
         print(
-            f"\rProcessed {processed}/{total} ({processed/total:.1%}) - "
-            f"{rate:.1f} texts/sec",
+            f"\rProcessed {processed}/{total} ({processed / total:.1%}) - {rate:.1f} texts/sec",
             end="",
             file=sys.stderr,
         )
@@ -177,15 +179,18 @@ def create_parser() -> argparse.ArgumentParser:
         help="Text to classify (or use --file or stdin)",
     )
     classify_parser.add_argument(
-        "-f", "--file",
+        "-f",
+        "--file",
         help="Read text from file",
     )
     classify_parser.add_argument(
-        "-m", "--model",
+        "-m",
+        "--model",
         help="Path to model weights",
     )
     classify_parser.add_argument(
-        "-d", "--device",
+        "-d",
+        "--device",
         choices=["cpu", "cuda", "mps"],
         help="Device to use",
     )
@@ -215,11 +220,13 @@ def create_parser() -> argparse.ArgumentParser:
         help="Output JSONL file",
     )
     batch_parser.add_argument(
-        "-m", "--model",
+        "-m",
+        "--model",
         help="Path to model weights",
     )
     batch_parser.add_argument(
-        "-d", "--device",
+        "-d",
+        "--device",
         choices=["cpu", "cuda", "mps"],
         help="Device to use",
     )
@@ -240,7 +247,8 @@ def create_parser() -> argparse.ArgumentParser:
         help="Include extracted features in output",
     )
     batch_parser.add_argument(
-        "-q", "--quiet",
+        "-q",
+        "--quiet",
         action="store_true",
         help="Suppress progress output",
     )
@@ -286,7 +294,8 @@ def create_parser() -> argparse.ArgumentParser:
         help="Text to analyze (or use --file or stdin)",
     )
     features_parser.add_argument(
-        "-f", "--file",
+        "-f",
+        "--file",
         help="Read text from file",
     )
     features_parser.add_argument(

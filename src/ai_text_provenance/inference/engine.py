@@ -10,19 +10,13 @@ Optimized for:
 from __future__ import annotations
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Optional
 import logging
 import time
-
-import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 from ai_text_provenance.models.classifier import ProvenanceClassifier
 from ai_text_provenance.models.schemas import (
     ClassificationResult,
-    ClassifyRequest,
-    ClassifyBatchRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,9 +34,9 @@ class InferenceEngine:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
         use_onnx: bool = True,
-        device: Optional[str] = None,
+        device: str | None = None,
         max_batch_size: int = 32,
         max_workers: int = 4,
     ):
@@ -72,8 +66,7 @@ class InferenceEngine:
         self._warm_up()
 
         logger.info(
-            f"Inference engine initialized (ONNX: {use_onnx}, "
-            f"device: {self.classifier.device})"
+            f"Inference engine initialized (ONNX: {use_onnx}, device: {self.classifier.device})"
         )
 
     def _warm_up(self) -> None:
@@ -96,9 +89,7 @@ class InferenceEngine:
 
         logger.info("Model warmed up")
 
-    def classify(
-        self, text: str, include_features: bool = False
-    ) -> ClassificationResult:
+    def classify(self, text: str, include_features: bool = False) -> ClassificationResult:
         """Synchronous single text classification.
 
         Args:
@@ -179,7 +170,7 @@ class InferenceEngine:
         try:
             # Quick inference test
             start = time.time()
-            result = self.classify("This is a health check test sentence.")
+            self.classify("This is a health check test sentence.")
             latency_ms = (time.time() - start) * 1000
 
             return {

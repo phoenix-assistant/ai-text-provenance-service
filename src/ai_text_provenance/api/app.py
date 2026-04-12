@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import Optional
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,10 +13,10 @@ from pydantic_settings import BaseSettings
 from ai_text_provenance import __version__
 from ai_text_provenance.inference.engine import InferenceEngine
 from ai_text_provenance.models.schemas import (
-    ClassifyRequest,
     ClassifyBatchRequest,
-    ClassifyResponse,
     ClassifyBatchResponse,
+    ClassifyRequest,
+    ClassifyResponse,
     HealthResponse,
 )
 
@@ -28,9 +26,9 @@ logger = logging.getLogger(__name__)
 class Settings(BaseSettings):
     """Application settings."""
 
-    model_path: Optional[str] = None
+    model_path: str | None = None
     use_onnx: bool = True
-    device: Optional[str] = None
+    device: str | None = None
     max_batch_size: int = 32
     cors_origins: list[str] = ["*"]
     log_level: str = "INFO"
@@ -40,7 +38,7 @@ class Settings(BaseSettings):
 
 
 # Global engine instance (initialized in lifespan)
-_engine: Optional[InferenceEngine] = None
+_engine: InferenceEngine | None = None
 
 
 def get_engine() -> InferenceEngine:
@@ -51,7 +49,7 @@ def get_engine() -> InferenceEngine:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Application lifespan handler."""
     global _engine
 
@@ -140,7 +138,9 @@ def create_app() -> FastAPI:
             )
 
             return ClassifyResponse(
-                prediction=result.prediction.value if hasattr(result.prediction, 'value') else result.prediction,
+                prediction=result.prediction.value
+                if hasattr(result.prediction, "value")
+                else result.prediction,
                 confidence=result.confidence,
                 probabilities=result.probabilities,
                 features=result.features.model_dump() if result.features else None,
@@ -177,7 +177,9 @@ def create_app() -> FastAPI:
             return ClassifyBatchResponse(
                 results=[
                     ClassifyResponse(
-                        prediction=r.prediction.value if hasattr(r.prediction, 'value') else r.prediction,
+                        prediction=r.prediction.value
+                        if hasattr(r.prediction, "value")
+                        else r.prediction,
                         confidence=r.confidence,
                         probabilities=r.probabilities,
                         features=r.features.model_dump() if r.features else None,

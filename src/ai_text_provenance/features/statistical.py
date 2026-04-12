@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from typing import Optional
 
 import numpy as np
 import spacy
@@ -23,7 +22,7 @@ from ai_text_provenance.models.schemas import StatisticalFeatures
 class StatisticalExtractor:
     """Extract statistical and information-theoretic features."""
 
-    def __init__(self, nlp: Optional[spacy.Language] = None):
+    def __init__(self, nlp: spacy.Language | None = None):
         """Initialize the statistical extractor.
 
         Args:
@@ -50,8 +49,8 @@ class StatisticalExtractor:
             return
 
         try:
-            from transformers import GPT2LMHeadModel, GPT2Tokenizer
             import torch
+            from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
             self._perplexity_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
             self._perplexity_model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -115,9 +114,7 @@ class StatisticalExtractor:
             surprise_score=surprise_score,
         )
 
-    def _calculate_perplexity_features(
-        self, text: str, doc: Doc
-    ) -> tuple[float, float, float]:
+    def _calculate_perplexity_features(self, _text: str, doc: Doc) -> tuple[float, float, float]:
         """Calculate perplexity-based features.
 
         Returns:
@@ -161,11 +158,7 @@ class StatisticalExtractor:
 
             # Burstiness: how much perplexity varies (normalized)
             if variance > 0:
-                burstiness = (
-                    np.std(sentence_perplexities) / avg_ppl
-                    if avg_ppl > 0
-                    else 0.0
-                )
+                burstiness = np.std(sentence_perplexities) / avg_ppl if avg_ppl > 0 else 0.0
             else:
                 burstiness = 0.0
 
@@ -195,7 +188,7 @@ class StatisticalExtractor:
             entropy -= prob * math.log2(prob)
 
         # Convert to approximate perplexity
-        ppl = 2 ** entropy
+        ppl = 2**entropy
 
         # Sentence-level variance approximation
         sentences = list(doc.sents)
@@ -277,9 +270,9 @@ class StatisticalExtractor:
         sum_x = np.sum(log_ranks)
         sum_y = np.sum(log_freqs)
         sum_xy = np.sum(log_ranks * log_freqs)
-        sum_x2 = np.sum(log_ranks ** 2)
+        sum_x2 = np.sum(log_ranks**2)
 
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
+        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x**2)
         alpha = -slope
 
         return float(alpha)
@@ -321,9 +314,9 @@ class StatisticalExtractor:
         sum_x = np.sum(log_ns)
         sum_y = np.sum(log_vs)
         sum_xy = np.sum(log_ns * log_vs)
-        sum_x2 = np.sum(log_ns ** 2)
+        sum_x2 = np.sum(log_ns**2)
 
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
+        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x**2)
 
         return float(slope)
 
@@ -345,7 +338,7 @@ class StatisticalExtractor:
             ngrams = [tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)]
             counter = Counter(ngrams)
 
-            for ngram, count in counter.items():
+            for _ngram, count in counter.items():
                 if count > 1:
                     repeated_tokens += n * (count - 1)
 

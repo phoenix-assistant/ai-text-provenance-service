@@ -11,13 +11,11 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from typing import Optional
 
 import spacy
 from spacy.tokens import Doc
 
 from ai_text_provenance.models.schemas import LinguisticFeatures
-
 
 # Common transition words by category
 TRANSITION_WORDS = {
@@ -39,7 +37,7 @@ for words in TRANSITION_WORDS.values():
 class LinguisticExtractor:
     """Extract linguistic and stylistic features from text."""
 
-    def __init__(self, nlp: Optional[spacy.Language] = None):
+    def __init__(self, nlp: spacy.Language | None = None):
         """Initialize the linguistic extractor.
 
         Args:
@@ -77,8 +75,7 @@ class LinguisticExtractor:
         sentence_lengths = [len([t for t in s if not t.is_punct]) for s in sentences]
         avg_sentence_length = sum(sentence_lengths) / len(sentence_lengths)
         sentence_length_variance = (
-            sum((l - avg_sentence_length) ** 2 for l in sentence_lengths)
-            / len(sentence_lengths)
+            sum((sl - avg_sentence_length) ** 2 for sl in sentence_lengths) / len(sentence_lengths)
             if len(sentence_lengths) > 1
             else 0.0
         )
@@ -210,9 +207,7 @@ class LinguisticExtractor:
         """
         subordinate_deps = {"advcl", "ccomp", "xcomp", "acl", "relcl"}
 
-        subordinate_count = sum(
-            1 for t in doc if t.dep_ in subordinate_deps
-        )
+        subordinate_count = sum(1 for t in doc if t.dep_ in subordinate_deps)
         clause_count = sum(1 for t in doc if t.pos_ == "VERB")
 
         return subordinate_count / clause_count if clause_count > 0 else 0.0
@@ -309,9 +304,7 @@ class LinguisticExtractor:
 
         # Flesch-Kincaid formula
         grade = (
-            0.39 * (total_words / total_sentences)
-            + 11.8 * (total_syllables / total_words)
-            - 15.59
+            0.39 * (total_words / total_sentences) + 11.8 * (total_syllables / total_words) - 15.59
         )
 
         return max(0.0, min(20.0, grade))

@@ -6,9 +6,8 @@ Handles loading, preprocessing, and augmentation of training data.
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Optional
 import random
+from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
@@ -16,7 +15,6 @@ from transformers import AutoTokenizer
 
 from ai_text_provenance.features.extractor import FeatureExtractor
 from ai_text_provenance.models.schemas import ProvenanceClass
-
 
 # Label mapping
 LABEL_TO_IDX = {
@@ -43,7 +41,7 @@ class ProvenanceDataset(Dataset):
         tokenizer_name: str = "distilbert-base-uncased",
         max_length: int = 512,
         precompute_features: bool = True,
-        cache_path: Optional[str] = None,
+        cache_path: str | None = None,
     ):
         """Initialize the dataset.
 
@@ -63,7 +61,7 @@ class ProvenanceDataset(Dataset):
 
         # Load data
         self.examples = []
-        with open(self.data_path, "r") as f:
+        with open(self.data_path) as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -83,13 +81,13 @@ class ProvenanceDataset(Dataset):
         if precompute_features:
             self._precompute_features(cache_path)
 
-    def _precompute_features(self, cache_path: Optional[str] = None) -> None:
+    def _precompute_features(self, cache_path: str | None = None) -> None:
         """Precompute features for all examples."""
         cache_file = Path(cache_path) if cache_path else None
 
         # Try to load from cache
         if cache_file and cache_file.exists():
-            with open(cache_file, "r") as f:
+            with open(cache_file) as f:
                 self.cached_features = json.load(f)
             return
 
@@ -134,10 +132,7 @@ class ProvenanceDataset(Dataset):
 
         # Get label
         label = example["label"]
-        if isinstance(label, str):
-            label_idx = LABEL_TO_IDX.get(label.lower(), 0)
-        else:
-            label_idx = label
+        label_idx = LABEL_TO_IDX.get(label.lower(), 0) if isinstance(label, str) else label
 
         return {
             "input_ids": encoding["input_ids"].squeeze(0),
@@ -195,7 +190,12 @@ class ProvenanceDataset(Dataset):
             ("climate change", "carbon emissions", "renewable energy", "environmental policy"),
             ("remote work", "productivity", "work-life balance", "team collaboration"),
             ("social media", "mental health", "online communities", "digital wellness"),
-            ("cryptocurrency", "blockchain technology", "decentralized finance", "market volatility"),
+            (
+                "cryptocurrency",
+                "blockchain technology",
+                "decentralized finance",
+                "market volatility",
+            ),
         ]
 
         for _ in range(num_samples):
@@ -203,31 +203,39 @@ class ProvenanceDataset(Dataset):
 
             # Human sample
             template = random.choice(human_templates)
-            samples.append({
-                "text": template.format(*random.sample(topic, 4)),
-                "label": "human",
-            })
+            samples.append(
+                {
+                    "text": template.format(*random.sample(topic, 4)),
+                    "label": "human",
+                }
+            )
 
             # AI sample
             template = random.choice(ai_templates)
-            samples.append({
-                "text": template.format(*random.sample(topic, 4)),
-                "label": "ai",
-            })
+            samples.append(
+                {
+                    "text": template.format(*random.sample(topic, 4)),
+                    "label": "ai",
+                }
+            )
 
             # Polished sample
             template = random.choice(polished_templates)
-            samples.append({
-                "text": template.format(*random.sample(topic, 4)),
-                "label": "polished_human",
-            })
+            samples.append(
+                {
+                    "text": template.format(*random.sample(topic, 4)),
+                    "label": "polished_human",
+                }
+            )
 
             # Humanized sample
             template = random.choice(humanized_templates)
-            samples.append({
-                "text": template.format(*random.sample(topic, 4)),
-                "label": "humanized_ai",
-            })
+            samples.append(
+                {
+                    "text": template.format(*random.sample(topic, 4)),
+                    "label": "humanized_ai",
+                }
+            )
 
         # Shuffle and write
         random.shuffle(samples)

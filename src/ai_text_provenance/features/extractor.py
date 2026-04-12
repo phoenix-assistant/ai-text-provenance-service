@@ -6,17 +6,15 @@ into a single interface used by the classifier.
 
 from __future__ import annotations
 
-from typing import Optional
-
 import spacy
 
-from ai_text_provenance.features.rst_parser import RSTParser
 from ai_text_provenance.features.linguistic import LinguisticExtractor
+from ai_text_provenance.features.rst_parser import RSTParser
 from ai_text_provenance.features.statistical import StatisticalExtractor
 from ai_text_provenance.models.schemas import (
     AllFeatures,
-    RSTFeatures,
     LinguisticFeatures,
+    RSTFeatures,
     StatisticalFeatures,
 )
 
@@ -28,7 +26,7 @@ class FeatureExtractor:
     statistical features into a comprehensive feature set.
     """
 
-    def __init__(self, nlp: Optional[spacy.Language] = None):
+    def __init__(self, nlp: spacy.Language | None = None):
         """Initialize feature extractors.
 
         Args:

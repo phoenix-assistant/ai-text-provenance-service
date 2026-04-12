@@ -1,7 +1,6 @@
 """Data models and schemas for the provenance service."""
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -124,7 +123,7 @@ class ClassificationResult(BaseModel):
     prediction: ProvenanceClass
     confidence: float = Field(ge=0.0, le=1.0)
     probabilities: dict[ProvenanceClass, float]
-    features: Optional[AllFeatures] = None
+    features: AllFeatures | None = None
 
     class Config:
         use_enum_values = True
@@ -150,7 +149,7 @@ class ClassifyResponse(BaseModel):
     prediction: str
     confidence: float
     probabilities: dict[str, float]
-    features: Optional[dict] = None
+    features: dict | None = None
 
 
 class ClassifyBatchResponse(BaseModel):

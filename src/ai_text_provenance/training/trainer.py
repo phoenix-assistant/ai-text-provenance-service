@@ -11,21 +11,19 @@ Supports:
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Optional
 import logging
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from sklearn.metrics import classification_report, confusion_matrix
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
-from sklearn.metrics import classification_report, confusion_matrix
+from torch.utils.data import DataLoader
 
 from ai_text_provenance.models.classifier import EnsembleClassifier
-from ai_text_provenance.models.schemas import ProvenanceClass
 from ai_text_provenance.training.dataset import ProvenanceDataset
 
 logger = logging.getLogger(__name__)
@@ -41,7 +39,7 @@ class Trainer:
         self,
         model: EnsembleClassifier,
         train_dataset: ProvenanceDataset,
-        val_dataset: Optional[ProvenanceDataset] = None,
+        val_dataset: ProvenanceDataset | None = None,
         batch_size: int = 16,
         learning_rate: float = 2e-5,
         weight_decay: float = 0.01,
@@ -49,7 +47,7 @@ class Trainer:
         warmup_ratio: float = 0.1,
         gradient_accumulation_steps: int = 1,
         max_grad_norm: float = 1.0,
-        device: Optional[str] = None,
+        device: str | None = None,
         output_dir: str = "outputs",
         use_wandb: bool = False,
         wandb_project: str = "ai-text-provenance",
@@ -123,7 +121,7 @@ class Trainer:
 
         # Scheduler
         total_steps = len(self.train_loader) * num_epochs
-        warmup_steps = int(total_steps * warmup_ratio)
+        int(total_steps * warmup_ratio)
 
         self.scheduler = OneCycleLR(
             self.optimizer,
@@ -314,11 +312,13 @@ class Trainer:
         if self.use_wandb:
             import wandb
 
-            wandb.log({
-                "epoch": epoch,
-                "val_loss": avg_loss,
-                "val_accuracy": accuracy,
-            })
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    "val_loss": avg_loss,
+                    "val_accuracy": accuracy,
+                }
+            )
 
         return avg_loss, accuracy, report
 

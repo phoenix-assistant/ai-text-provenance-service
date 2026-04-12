@@ -9,9 +9,7 @@ Based on techniques from the RACE paper for AI text detection.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
-from typing import Optional
 
 import spacy
 from spacy.tokens import Doc, Span
@@ -43,9 +41,9 @@ class RSTNode:
     # Nuclearity: 'nucleus', 'satellite', or 'multinuclear'
     nuclearity: str
     # Relation type if internal node
-    relation: Optional[str] = None
+    relation: str | None = None
     # EDU if leaf node
-    edu: Optional[DiscourseUnit] = None
+    edu: DiscourseUnit | None = None
     # Children if internal node
     children: list[RSTNode] = field(default_factory=list)
     # Depth in tree
@@ -64,7 +62,6 @@ RST_RELATIONS = {
     "evidence": ["for example", "for instance", "such as"],
     "justify": ["because", "since", "therefore"],
     "restatement": ["in other words", "that is", "namely"],
-
     # Subject matter relations
     "elaboration": ["specifically", "in particular", "namely", "for example"],
     "circumstance": ["when", "while", "as", "during"],
@@ -76,7 +73,6 @@ RST_RELATIONS = {
     "evaluation": ["importantly", "significantly", "notably"],
     "solutionhood": ["to solve", "to address", "the solution"],
     "purpose": ["to", "in order to", "so that", "for"],
-
     # Multinuclear relations
     "contrast": ["but", "however", "while", "whereas", "on the other hand"],
     "comparison": ["similarly", "likewise", "compared to", "in contrast"],
@@ -94,7 +90,7 @@ class RSTParser:
     for detecting humanized AI — structure is harder to fake.
     """
 
-    def __init__(self, nlp: Optional[spacy.Language] = None):
+    def __init__(self, nlp: spacy.Language | None = None):
         """Initialize the RST parser.
 
         Args:
@@ -263,9 +259,7 @@ class RSTParser:
         for sent_idx in sorted(sentences.keys()):
             sent_edus = sentences[sent_idx]
             if len(sent_edus) == 1:
-                sentence_trees.append(
-                    RSTNode(nuclearity="nucleus", edu=sent_edus[0], depth=0)
-                )
+                sentence_trees.append(RSTNode(nuclearity="nucleus", edu=sent_edus[0], depth=0))
             else:
                 # Build intra-sentence tree
                 tree = self._build_sentence_tree(sent_edus)
@@ -344,7 +338,7 @@ class RSTParser:
             depth=0,
         )
 
-    def _get_first_edu(self, node: RSTNode) -> Optional[DiscourseUnit]:
+    def _get_first_edu(self, node: RSTNode) -> DiscourseUnit | None:
         """Get the first EDU from a tree node."""
         if node.edu:
             return node.edu
@@ -359,9 +353,7 @@ class RSTParser:
         if not node.children:
             return current_depth
 
-        return max(
-            self._calculate_tree_depth(child, current_depth + 1) for child in node.children
-        )
+        return max(self._calculate_tree_depth(child, current_depth + 1) for child in node.children)
 
     def _calculate_tree_balance(self, node: RSTNode) -> float:
         """Calculate how balanced the RST tree is.
@@ -423,7 +415,7 @@ class RSTParser:
         edu_lengths = [len(edu.tokens) for edu in edus]
         avg_edu_length = sum(edu_lengths) / len(edu_lengths)
         edu_length_variance = (
-            sum((l - avg_edu_length) ** 2 for l in edu_lengths) / len(edu_lengths)
+            sum((el - avg_edu_length) ** 2 for el in edu_lengths) / len(edu_lengths)
             if len(edu_lengths) > 1
             else 0.0
         )
@@ -446,7 +438,11 @@ class RSTParser:
         satellite_count = nuclearity_counts.get("satellite", 0)
         multinuclear_count = nuclearity_counts.get("multinuclear", 0)
 
-        nucleus_ratio = nucleus_count / (nucleus_count + satellite_count) if (nucleus_count + satellite_count) > 0 else 0.5
+        nucleus_ratio = (
+            nucleus_count / (nucleus_count + satellite_count)
+            if (nucleus_count + satellite_count) > 0
+            else 0.5
+        )
         multinuclear_ratio = multinuclear_count / total_nodes if total_nodes > 0 else 0.0
 
         # Relation counts
@@ -470,8 +466,12 @@ class RSTParser:
             multinuclear_ratio=multinuclear_ratio,
             elaboration_ratio=relation_counts.get("elaboration", 0) / total_relations,
             contrast_ratio=relation_counts.get("contrast", 0) / total_relations,
-            cause_ratio=(relation_counts.get("cause", 0) + relation_counts.get("result", 0)) / total_relations,
-            temporal_ratio=(relation_counts.get("sequence", 0) + relation_counts.get("circumstance", 0)) / total_relations,
+            cause_ratio=(relation_counts.get("cause", 0) + relation_counts.get("result", 0))
+            / total_relations,
+            temporal_ratio=(
+                relation_counts.get("sequence", 0) + relation_counts.get("circumstance", 0)
+            )
+            / total_relations,
             attribution_ratio=relation_counts.get("attribution", 0) / total_relations,
             condition_ratio=relation_counts.get("condition", 0) / total_relations,
             local_coherence=local_coherence,
@@ -479,9 +479,7 @@ class RSTParser:
             coherence_breaks=coherence_breaks,
         )
 
-    def _collect_leaf_depths(
-        self, node: RSTNode, current_depth: int, depths: list[int]
-    ) -> None:
+    def _collect_leaf_depths(self, node: RSTNode, current_depth: int, depths: list[int]) -> None:
         """Collect depths of all leaf nodes."""
         if not node.children:
             depths.append(current_depth)
@@ -501,9 +499,7 @@ class RSTParser:
         coherence_scores = []
         for i in range(len(sentences) - 1):
             sent1_entities = {ent.text.lower() for ent in sentences[i].ents}
-            sent1_nouns = {
-                t.lemma_.lower() for t in sentences[i] if t.pos_ in ("NOUN", "PROPN")
-            }
+            sent1_nouns = {t.lemma_.lower() for t in sentences[i] if t.pos_ in ("NOUN", "PROPN")}
             sent1_refs = sent1_entities | sent1_nouns
 
             sent2_entities = {ent.text.lower() for ent in sentences[i + 1].ents}
@@ -545,9 +541,7 @@ class RSTParser:
         # Check topic presence throughout document
         topic_presence = []
         for sent in sentences:
-            sent_topics = {
-                t.lemma_.lower() for t in sent if t.pos_ in ("NOUN", "PROPN")
-            }
+            sent_topics = {t.lemma_.lower() for t in sent if t.pos_ in ("NOUN", "PROPN")}
             overlap = len(sent_topics & main_topics)
             topic_presence.append(1.0 if overlap > 0 else 0.0)
 
@@ -564,8 +558,8 @@ class RSTParser:
 
         breaks = 0
         for i in range(len(edus) - 1):
-            tokens1 = set(t.lower() for t in edus[i].tokens if len(t) > 3)
-            tokens2 = set(t.lower() for t in edus[i + 1].tokens if len(t) > 3)
+            tokens1 = {t.lower() for t in edus[i].tokens if len(t) > 3}
+            tokens2 = {t.lower() for t in edus[i + 1].tokens if len(t) > 3}
 
             # Check for content word overlap
             overlap = len(tokens1 & tokens2)
