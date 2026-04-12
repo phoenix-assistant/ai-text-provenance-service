@@ -61,7 +61,7 @@ jobs:
           python -m spacy download en_core_web_sm
 
       - name: Run tests
-        run: pytest tests/ -v --cov=ai_text_provenance --cov-report=xml
+        run: pytest --tb=short tests/ -v --cov=ai_text_provenance --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
